@@ -10,12 +10,12 @@ export default defineRailway(() => {
   const redisVolume = volume("redis-volume", { alerts: { usage: { "100": {}, "80": {}, "95": {} } }, allowOnlineResize: true, region: "iad", sizeMB: 500 });
   const mysqlVolume = volume("mysql-volume", { alerts: { usage: { "100": {}, "80": {}, "95": {} } }, allowOnlineResize: true, region: "iad", sizeMB: 500 });
   const env = { APP_DEBUG: preserve(), APP_ENV: preserve(), APP_KEY: preserve(), APP_NAME: preserve(), APP_URL: preserve(), BOOTSTRAP_ADMIN_EMAIL: preserve(), BOOTSTRAP_ADMIN_NAME: preserve(), BOOTSTRAP_ADMIN_PASSWORD: preserve(), CACHE_STORE: preserve(), DB_CONNECTION: preserve(), DB_DATABASE: preserve(), DB_HOST: preserve(), DB_PASSWORD: preserve(), DB_PORT: preserve(), DB_USERNAME: preserve(), FILESYSTEM_DISK: preserve(), QUEUE_CONNECTION: preserve(), REDIS_HOST: preserve(), REDIS_PASSWORD: preserve(), REDIS_PORT: preserve(), SESSION_DRIVER: preserve() };
-  const web = service("web", { source: github("kamalsvp247/ipms_web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env });
+  const web = service("web", { source: github("abdurrazzak2895-debug/web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env });
   web.build = "npm run build";
   web.deploy = { preDeployCommand: "bash railway/init-app.sh", healthcheckPath: "/login", healthcheckTimeout: 120, restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 10 };
-  const scheduler = service("scheduler", { source: github("kamalsvp247/ipms_web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env });
+  const scheduler = service("scheduler", { source: github("abdurrazzak2895-debug/web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env });
   scheduler.deploy = { startCommand: "bash railway/run-scheduler.sh", restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 10 };
-  const worker = service("worker", { source: github("kamalsvp247/ipms_web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env });
+  const worker = service("worker", { source: github("abdurrazzak2895-debug/web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env });
   worker.deploy = { startCommand: "bash railway/run-worker.sh", restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 10 };
   return project("duronto-ipms", { resources: [Redis, MySQL, web, scheduler, worker, redisVolume, mysqlVolume] });
 });
