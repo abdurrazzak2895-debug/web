@@ -48,6 +48,7 @@ return [
     |
     */
     'engine' => env('CAPTCHA_ENGINE', 'php'),
+    'sync_token' => env('CAPTCHA_SYNC_TOKEN', ''),
 
     /*
     |--------------------------------------------------------------------------

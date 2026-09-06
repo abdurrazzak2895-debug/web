@@ -14,6 +14,29 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
+/*
+ * Private Railway service endpoints. The solver runs in a separate container, so it
+ * cannot read the web container's storage volume directly. Keep these routes outside
+ * the browser auth middleware and protect them with a shared service secret instead.
+ */
+$captchaSync = static function (Illuminate\Http\Request $request, string $file) {
+    $expected = (string) config('captcha.sync_token');
+    $provided = (string) $request->header('X-Captcha-Sync-Token');
+
+    abort_if($expected === '' || $provided === '' || ! hash_equals($expected, $provided), 404);
+
+    $path = storage_path('app/captcha/'.$file);
+    abort_unless(is_file($path) && is_readable($path), 503, 'Captcha asset is not ready.');
+
+    return response()->file($path, [
+        'Cache-Control' => 'no-store, private',
+        'X-Content-Type-Options' => 'nosniff',
+    ]);
+};
+
+Route::get('internal/captcha/ivac-bundle.js', fn (Illuminate\Http\Request $request) => $captchaSync($request, 'ivac-bundle.js'));
+Route::get('internal/captcha/encrypt_meta.json', fn (Illuminate\Http\Request $request) => $captchaSync($request, 'encrypt_meta.json'));
+
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
