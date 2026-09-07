@@ -17,5 +17,9 @@ export default defineRailway(() => {
   scheduler.deploy = { startCommand: "bash railway/run-scheduler.sh", restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 10 };
   const worker = service("worker", { source: github("abdurrazzak2895-debug/web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env });
   worker.deploy = { startCommand: "bash railway/run-worker.sh", restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 10 };
-  return project("duronto-ipms", { resources: [Redis, MySQL, web, scheduler, worker, redisVolume, mysqlVolume] });
+  const solverEnv = { CAPTCHA_SYNC_TOKEN: preserve(), CAPTCHA_SOLVER_API_TOKEN: preserve(), CAPTCHA_SOLVER_CONCURRENCY: preserve(), CAPTCHA_SOLVER_BROWSERS: preserve() };
+  const solver = service("solver", { source: github("abdurrazzak2895-debug/web", { branch: "master", checkSuites: false }), replicas: { "iad": 1 }, env: solverEnv });
+  solver.build = { dockerfilePath: "deploy/captcha-solver.Dockerfile" };
+  solver.deploy = { healthcheckPath: "/health", healthcheckTimeout: 120, restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 10 };
+  return project("duronto-ipms", { resources: [Redis, MySQL, web, scheduler, worker, solver, redisVolume, mysqlVolume] });
 });
