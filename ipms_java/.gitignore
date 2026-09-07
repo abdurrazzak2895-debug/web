@@ -1,4 +1,5 @@
 target/
+!target/ivac-booking.jar
 .idea/
 logs/
 *.iml
