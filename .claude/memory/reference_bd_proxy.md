@@ -9,6 +9,10 @@ metadata:
 
 Proxy for fetching the live IVAC bundle in the captcha Algorithm Monitor and `app/Scripts/analyze_captcha_algo.py`:
 
+**UPDATE Sep 7 2026 — old proxy STILL VALID, re-verified live:** exit IP `37.111.194.200` = **Dhaka, Bangladesh, GrameenPhone (AS24389)**; `GET appointment.ivacbd.com/signin` through it returned the expected site-wide 403 booking notice (site closed, not a proxy fault). Still the working credential.
+
+**NEW credential Sep 7 2026 (user-supplied) — DOES NOT AUTHENTICATE (407):** `abdurrazzak7395_lZjmx` / `pAa1m9jNTsXg=eYF`. Tried: raw on `bd-pr.oxylabs.io:30001`, password `%3D`-encoded, `customer-`-prefixed username on ports 30000+30001, and `customer-abdurrazzak7395_lZjmx-cc-bd` on `pr.oxylabs.io:7777` — all `CONNECT tunnel failed, response 407`. Suspect transcription error (username lacks the `customer-` prefix Oxylabs issues) or account not yet active. Do NOT switch settings.captcha_bd_proxy_url to it until it passes `curl -x ... https://api.ipify.org`.
+
 **Current (June 13 2026 — verified valid, exit IP 163.47.157.57 BD):**
 `http://customer-smensulaiman_0O1gd:OTUw=ks3N~8TUD@bd-pr.oxylabs.io:30001`
 
