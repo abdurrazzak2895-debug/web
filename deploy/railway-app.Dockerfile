@@ -20,10 +20,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /run/sshd /root/.ssh
 
+COPY --from=php-deps /usr/bin/composer /usr/bin/composer
 COPY --from=php-deps /app/vendor ./vendor
 COPY . .
 
-# Wayfinder invokes php artisan during the Vite build, so build in the app image.
 RUN APP_KEY="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
     composer dump-autoload --no-dev --optimize --no-interaction --no-scripts \
     && APP_KEY="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" npm ci --no-audit --no-fund \
