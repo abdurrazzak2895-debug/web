@@ -983,17 +983,6 @@ def main():
         print(json.dumps(attribute_only(sys.argv[idx + 1])))
         return
 
-    if local_bundle_path is None:
-        try:
-            import cloudscraper  # noqa: F401
-        except ImportError:
-            output = {
-                "error": "cloudscraper not installed",
-                "logs": ["[ERROR] cloudscraper not installed"]
-            }
-            print(json.dumps(output))
-            return
-
     if head_only:
         print(json.dumps(fetch_bundle_asset(proxy_url)))
         return
