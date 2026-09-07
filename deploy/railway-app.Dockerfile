@@ -5,6 +5,8 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts
 
+FROM node:22-bookworm-slim AS node-runtime
+
 FROM php:8.4-cli-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -12,7 +14,7 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       openssh-server bash ca-certificates git unzip nodejs npm \
+       openssh-server bash ca-certificates git unzip \
        libicu-dev libzip-dev libpng-dev libjpeg62-turbo-dev \
        libfreetype6-dev libonig-dev libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -20,6 +22,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /run/sshd /root/.ssh
 
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local/bin/npm /usr/local/bin/npm
+COPY --from=node-runtime /usr/local/bin/npx /usr/local/bin/npx
+COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --from=php-deps /usr/bin/composer /usr/bin/composer
 COPY --from=php-deps /app/vendor ./vendor
 COPY . .
