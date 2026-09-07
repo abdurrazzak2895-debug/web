@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 COPY app/Scripts/in_house_captcha_solver.cjs app/Scripts/captcha_live_runtime.cjs app/Scripts/captcha_dom_stub.cjs ./app/Scripts/
 COPY deploy/captcha-solver-entrypoint.sh /usr/local/bin/captcha-solver-entrypoint
