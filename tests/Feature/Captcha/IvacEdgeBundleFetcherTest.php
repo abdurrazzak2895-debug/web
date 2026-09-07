@@ -103,6 +103,36 @@ function wafBlockHtml(): string
         .'<body><h1 data-translate="block_headline">Sorry, you have been blocked</h1></body></html>';
 }
 
+/**
+ * The EXACT body IVAC's Cloudflare edge served for EVERY path — /.well-known/,
+ * /signin, and /assets/*.js alike — while the site was closed outside its
+ * booking window, captured live on Sep 7 2026 (403, 840 bytes).
+ *
+ * The wording has drifted since the June 2026 notice: there is no "APPOINTMENT
+ * BOOKING GUIDELINES" heading and no "Appointment booking opens at" line — the
+ * only surviving marker is the "IMPORTANT NOTICE" badge, which is what
+ * looksLikeBookingNotice() keys on.
+ */
+function bookingNoticeHtml(bool $withChallengeBootstrap = false): string
+{
+    $body = '<!DOCTYPE html><html><body style="margin:0;background:#004638;color:#fff;font-family:Arial;height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;padding:20px">'
+        .'<div><div style="font-size:14px;background:#C7DDDB;color:#004638;padding:6px 14px;border-radius:20px;display:inline-block">IMPORTANT NOTICE</div>'
+        .'<h1 style="color:#FF671F"> </h1>'
+        .'<ul style="text-align:left;display:inline-block;max-width:700px"><li>Appointment booking shall remain open from 12:00 Noon to 05:00 PM on Sunday to Thursday, and Saturday 10:00 AM to 12:00 PM.</li><br/>'
+        .'<li>Uploaded webfiles must be original visa application PDFs and not older than 30 days. Altered, edited, or tampered files will be rejected.</li></ul>'
+        .'<br/><p style="font-weight:bold;color:#FF671F">We thank you for your attention and co-operation</p></div>';
+
+    if ($withChallengeBootstrap) {
+        // The /signin variant appends Cloudflare's standard challenge-platform
+        // bootstrap, so the body matches BOTH looksLikeBookingNotice() and
+        // looksLikeChallenge(); the notice (site closed) is the actionable truth.
+        $body .= '<script>(function(){var a=document.createElement(\'script\');'
+            ."a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.body.appendChild(a)})();</script>";
+    }
+
+    return $body.'</body></html>';
+}
+
 function indexHtml(string $asset = 'abc123-XYZ.js'): string
 {
     return '<!doctype html><html><head><meta name="version" content="1.0.3" />'
@@ -321,5 +351,59 @@ it('rejects a challenge page as an invalid bundle', function () {
     $result = $fetcher->fetchFastest();
 
     expect($result['download_log'][0]['is_real_js'])->toBeFalse();
+    expect($fetcher->raceCalls)->toBe(1);
+});
+
+it('classifies the live off-hours booking notice (Sep 2026 wording) as the notice, not a generic failure', function () {
+    // Captured live on Sep 7 2026: HTTP 403 with this body on EVERY path, including
+    // /.well-known/ and /assets/*.js. Unlike the June wording it carries no
+    // "APPOINTMENT BOOKING GUIDELINES" heading — only the "IMPORTANT NOTICE" badge —
+    // so if this ever reports a generic failure instead of notice_active, the
+    // matcher lost its last marker and IVAC changed the notice again.
+    $result = racingFetcher(['discover' => ['status' => 403, 'body' => bookingNoticeHtml()]])->raceDownload();
+
+    expect($result['ok'])->toBeFalse();
+    expect($result['notice_active'])->toBeTrue();
+    expect($result['message'])->toBe(IvacEdgeBundleFetcher::NOTICE_MESSAGE);
+    expect($result['discover_log'][0]['notice_active'])->toBeTrue();
+    expect($result['discover_log'][0]['name'])->toBeNull();
+    expect($result['discover_log'][0]['blocked'])->toBeFalse();
+});
+
+it('still reports the booking notice when Cloudflare appends its challenge bootstrap to the notice page', function () {
+    // The /signin variant of the notice embeds the challenge-platform bootstrap, so
+    // the body matches both looksLikeBookingNotice() and looksLikeChallenge(). The
+    // notice must win: it is the actionable truth (site closed), and a challenge
+    // verdict would send the operator chasing a fingerprint problem that isn't there.
+    $result = racingFetcher(['discover' => ['status' => 403, 'body' => bookingNoticeHtml(true)]])->raceDownload();
+
+    expect($result['notice_active'])->toBeTrue();
+    expect($result['message'])->toBe(IvacEdgeBundleFetcher::NOTICE_MESSAGE);
+    expect($result['discover_log'][0]['name'])->toBeNull();
+    expect($result['discover_log'][0]['notice_active'])->toBeTrue();
+});
+
+it('surfaces the notice when discovery succeeds but the asset download is notice-gated', function () {
+    // Race seen live on Sep 7 2026: discovery got through just before the notice
+    // landed, then the 2.2 MB asset request met the 403 notice. fetchFastest() must
+    // stop probing (site-wide state) and hand to the race, which re-confirms and
+    // reports notice_active — not "invalid bundle".
+    $fetcher = stubFetcher([
+        '1.1.1.1' => ['discover' => ['body' => indexHtml()], 'asset' => ['status' => 403, 'body' => bookingNoticeHtml()]],
+    ], ['1.1.1.1', '2.2.2.2', '3.3.3.3'], [
+        'ok' => false, 'body' => null, 'local_path' => null, 'name' => null, 'version' => null,
+        'edge_ip' => null, 'cf_cache_status' => null, 'notice_active' => true,
+        'message' => IvacEdgeBundleFetcher::NOTICE_MESSAGE, 'discover_log' => [], 'download_log' => [],
+    ]);
+
+    $result = $fetcher->fetchFastest();
+
+    expect($result['ok'])->toBeFalse();
+    expect($result['notice_active'])->toBeTrue();
+    expect($result['message'])->toBe(IvacEdgeBundleFetcher::NOTICE_MESSAGE);
+    expect($result['name'])->toBeNull();
+    // The fast-path asset attempt that hit the notice stays at the head of the log.
+    expect($result['download_log'])->toHaveCount(1);
+    expect($result['download_log'][0]['notice_active'])->toBeTrue();
     expect($fetcher->raceCalls)->toBe(1);
 });
