@@ -30,13 +30,7 @@ yarn-error.log
 app/Scripts/__pycache__/
 *.sql
 
-# Live, runtime-mutable captcha encryption state. The sidecar encrypts from
-# encrypt_meta.json and the analyzer rewrites both files on every run, so they
-# must NOT be version-controlled: a pull could clobber live state with a stale
-# committed algorithm (instant 400) or leave them root-owned. The immutable,
-# content-addressed corpus under bundles/ stays tracked as a backup/test fixture.
-/storage/app/captcha/ivac-bundle.js
-/storage/app/captcha/encrypt_meta.json
+
 
 # Claude Code local settings — machine-specific approved-command cache. It
 # accumulates whatever gets approved, which has included live credentials

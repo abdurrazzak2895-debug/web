@@ -1,4 +1,7 @@
 *
 !private/
 !public/
+!captcha/
+!captcha/ivac-bundle.js
+!captcha/encrypt_meta.json
 !.gitignore
