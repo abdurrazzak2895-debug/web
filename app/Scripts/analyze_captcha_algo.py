@@ -12,6 +12,9 @@ import json
 import time
 import hashlib
 import subprocess
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urljoin
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -19,6 +22,7 @@ from typing import Optional
 # "/" for a time-gated "Appointment Booking Guidelines" notice page during booking
 # hours (no bundle in that HTML), while /signin always serves the real SPA.
 BUNDLE_PAGE_URL = "https://appointment.ivacbd.com/signin"
+WELL_KNOWN_URL = "https://appointment.ivacbd.com/.well-known/"
 
 # Forces Cloudflare to revalidate against origin instead of serving a stale edge-cached
 # copy of /signin from before the latest redeploy. Combined with NO_CACHE_PARAMS below.
@@ -927,33 +931,22 @@ def fetch_bundle_asset(proxy_url: str) -> dict:
     Returns {bundle_asset, bundle_url, error}.
     """
     try:
-        import cloudscraper
-    except ImportError:
-        return {"error": "cloudscraper not installed"}
-
-    try:
-        scraper = cloudscraper.create_scraper()
-        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else {}
-        # Fetch /signin, not /: IVAC swaps "/" for a time-gated notice page during
-        # booking hours, which hides the bundle. /signin always serves the SPA.
-        page = scraper.get(
-            BUNDLE_PAGE_URL,
-            proxies=proxies,
-            timeout=15,
-            headers=NO_CACHE_HEADERS,
-            params={"_": int(time.time() * 1000)},
-        )
-        if page.status_code != 200:
-            return {"error": f"Failed to fetch main page: HTTP {page.status_code}"}
-        m = re.search(r'<script[^>]+src="(/assets/[^"]+\.js)"', page.text)
+        page_request = Request(WELL_KNOWN_URL, headers=NO_CACHE_HEADERS)
+        with urlopen(page_request, timeout=20) as response:
+            page_text = response.read().decode("utf-8", errors="ignore")
+        m = re.search(r'assets/(mq[a-z0-9]+-[A-Za-z0-9_-]+\.js)', page_text)
         if not m:
-            return {"error": "Could not find JS bundle URL in HTML"}
-        asset_path = m.group(1)
+            return {"error": "Could not find JS bundle URL in /.well-known/ response"}
+        asset_path = f"/assets/{m.group(1)}"
         return {
             "bundle_asset": os.path.basename(asset_path),
-            "bundle_url": f"https://appointment.ivacbd.com{asset_path}",
+            "bundle_url": urljoin(WELL_KNOWN_URL, asset_path),
             "error": None,
         }
+    except HTTPError as e:
+        return {"error": f"IVAC /.well-known/ returned HTTP {e.code}; retry during the live IVAC window"}
+    except URLError as e:
+        return {"error": f"IVAC bundle discovery failed: {e.reason}"}
     except Exception as e:
         return {"error": str(e)}
 
@@ -1109,54 +1102,18 @@ def analyze(proxy_url: str, local_bundle_path: Optional[str] = None) -> dict:
             bundle_url = f"file://{os.path.abspath(local_bundle_path)}"
             log(f"[4/6] ✓ Bundle loaded from disk (size: {len(js_code)} bytes)")
         else:
-            try:
-                import cloudscraper
-            except ImportError:
-                return {
-                    "error": "cloudscraper not installed",
-                    "logs": ["[ERROR] cloudscraper not installed"]
-                }
-
-            # Create scraper and fetch main page
-            log("[1/6] Creating CloudScraper session...")
-            scraper = cloudscraper.create_scraper()
-            proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else {}
-            mode_label = f"proxy={proxy_url}" if proxy_url else "direct (no proxy)"
-
-            # Fetch main page to find JS bundle
-            log(f"[2/6] Fetching appointment.ivacbd.com/signin ({mode_label})...")
-            page_response = scraper.get(
-                BUNDLE_PAGE_URL,
-                proxies=proxies,
-                timeout=15,
-                headers=NO_CACHE_HEADERS,
-                params={"_": int(time.time() * 1000)},
-            )
-            if page_response.status_code != 200:
-                return {"error": f"Failed to fetch main page: HTTP {page_response.status_code}", "logs": logs}
-
-            log(f"[2/6] ✓ Got HTML (size: {len(page_response.text)} bytes)")
-
-            # Extract JS bundle URL from <script src="..."> tag
-            log("[3/6] Scanning HTML for JS bundle URL...")
-            bundle_match = re.search(r'<script[^>]+src="(/assets/[^"]+\.js)"', page_response.text)
-            if not bundle_match:
-                return {"error": "Could not find JS bundle URL in HTML", "logs": logs}
-
-            bundle_path = bundle_match.group(1)
-            bundle_url = f"https://appointment.ivacbd.com{bundle_path}"
-            log(f"[3/6] ✓ Found bundle: {bundle_path}")
-
-            # Fetch the JS bundle
-            log("[4/6] Downloading JS bundle...")
+            log("[1/6] Discovering the public bundle through /.well-known/...")
+            discovery = fetch_bundle_asset(proxy_url)
+            if discovery.get("error"):
+                return {"error": discovery["error"], "logs": logs}
+            bundle_url = discovery["bundle_url"]
+            log(f"[3/6] ✓ Found public static bundle: {bundle_url}")
+            log("[4/6] Downloading public static bundle...")
             download_started_at = datetime.now(timezone.utc).isoformat()
             download_start = time.perf_counter()
-            bundle_response = scraper.get(bundle_url, proxies=proxies, timeout=120)
+            with urlopen(Request(bundle_url, headers={"Accept": "application/javascript"}), timeout=120) as response:
+                js_code = response.read().decode("utf-8", errors="ignore")
             download_duration_ms = round((time.perf_counter() - download_start) * 1000)
-            if bundle_response.status_code != 200:
-                return {"error": f"Failed to fetch JS bundle: HTTP {bundle_response.status_code}", "logs": logs}
-
-            js_code = bundle_response.text
             log(f"[4/6] ✓ Bundle downloaded (size: {len(js_code)} bytes) in {download_duration_ms} ms")
 
         # Dump the raw bundle to a single fixed path (overwrites previous run). On the edge
