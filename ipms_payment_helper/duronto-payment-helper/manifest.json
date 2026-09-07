@@ -1,20 +1,20 @@
 {
     "manifest_version": 3,
     "name": "DURONTO IVAC Payment Helper",
-    "version": "1.3",
+    "version": "1.4",
     "description": "Captures the IVAC dg-epay payment callback (redirect) URL in your browser and forwards it to the DURONTO portal, so payment links are completed automatically.",
     "author": "DURONTO",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5dN0bh2hw7yOOhX3EQjiCeqTuNpdBt7EdJLXZKppDjiQxuTbPkSVnT9WsWrtJguRnF6lbgH86+qP1aUkN6mGDr1B4Ub18SjzM2KF1AKoH/8JE17vCD0qX41MQC6nsOTlQSQ6UZ+nnS0AnGlgOXk9qRdWeWK+ojD5gYEyY4gyqVJQciG3AvwbEo8KtoOKyC2O4Aq2mAt5l2OAms913W7rXKlNDAOEMoENaFu6LKyj1/H+8p4qqinCOSwv8WVqapdTu5HPyhXhTwbieW8eOo9H0ySY8Cr7i3ZoKlyBCgo56in9apiH39cne4xU9s1ngE9RSQYSr5LKx9nB/Ebn1XZWawIDAQAB",
     "permissions": ["tabs", "webNavigation", "declarativeNetRequest"],
     "host_permissions": [
         "https://api.ivacbd.com/*",
-        "https://web-production-21253d.up.railway.app/*",
-        "https://ipms.senda.fit/*"
+        "https://ipms.senda.fit/*",
+        "https://ivacbd.up.railway.app/*"
     ],
     "externally_connectable": {
         "matches": [
-            "https://web-production-21253d.up.railway.app/*",
-            "https://ipms.senda.fit/*"
+            "https://ipms.senda.fit/*",
+            "https://ivacbd.up.railway.app/*"
         ]
     },
     "background": {

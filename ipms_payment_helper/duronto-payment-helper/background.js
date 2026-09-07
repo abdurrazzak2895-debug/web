@@ -2,7 +2,7 @@ const IVAC_DG_EPAY_CALLBACK_PREFIX =
     "https://api.ivacbd.com/iams/api/v1/payment/dg-epay/callback";
 
 const API_URL =
-    "https://web-production-21253d.up.railway.app/api/payment-links/redirect-url";
+    "https://ipms.senda.fit/api/payment-links/redirect-url";
 
 const handledUrls = new Set();
 
