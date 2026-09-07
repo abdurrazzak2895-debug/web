@@ -18,10 +18,18 @@ class InHouseCaptchaClient
 
     private float $timeout;
 
+    /** @var array<string, string> */
+    private array $headers;
+
     public function __construct()
     {
         $this->baseUrl = rtrim((string) config('captcha.in_house.url'), '/');
         $this->timeout = (float) config('captcha.in_house.timeout', 60.0);
+        $token = (string) config('captcha.in_house.api_token', '');
+        if ($token === '') {
+            throw new RuntimeException('CAPTCHA_SOLVER_API_TOKEN is not configured.');
+        }
+        $this->headers = ['X-Captcha-Solver-Token' => $token];
     }
 
     /**
@@ -46,6 +54,7 @@ class InHouseCaptchaClient
 
         try {
             $response = Http::timeout($httpTimeout)
+                ->withHeaders($this->headers)
                 ->acceptJson()
                 ->post("{$this->baseUrl}/solve", $payload);
         } catch (\Throwable $e) {
@@ -77,7 +86,7 @@ class InHouseCaptchaClient
     public function health(): ?array
     {
         try {
-            $response = Http::timeout(3)->acceptJson()->get("{$this->baseUrl}/health");
+            $response = Http::timeout(3)->withHeaders($this->headers)->acceptJson()->get("{$this->baseUrl}/health");
 
             return $response->successful() ? $response->json() : null;
         } catch (\Throwable $e) {
@@ -108,6 +117,7 @@ class InHouseCaptchaClient
             // A trace runs one uninterrupted attempt rather than the hot path's three short
             // ones, so it can legitimately outlast the solve timeout.
             $response = Http::timeout(($timeoutMs !== null ? $timeoutMs / 1000 : 30) + 15)
+                ->withHeaders($this->headers)
                 ->acceptJson()
                 ->post("{$this->baseUrl}/trace", $payload);
         } catch (\Throwable $e) {
@@ -142,6 +152,7 @@ class InHouseCaptchaClient
     {
         try {
             $response = Http::timeout(1200)
+                ->withHeaders($this->headers)
                 ->acceptJson()
                 ->post("{$this->baseUrl}/bisect", array_filter([
                     'siteKey' => $siteKey,
@@ -168,7 +179,7 @@ class InHouseCaptchaClient
         try {
             // Closing and re-warming Chrome takes a few seconds; the default 3s health
             // timeout would report a false failure on an otherwise successful restart.
-            return Http::timeout(60)->post("{$this->baseUrl}/restart")->successful();
+            return Http::timeout(60)->withHeaders($this->headers)->post("{$this->baseUrl}/restart")->successful();
         } catch (\Throwable $e) {
             return false;
         }

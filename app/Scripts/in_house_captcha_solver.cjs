@@ -116,6 +116,10 @@ const puppeteer = require('puppeteer');
 
 const HOST = process.env.CAPTCHA_SOLVER_HOST || '127.0.0.1';
 const PORT = parseInt(process.env.CAPTCHA_SOLVER_PORT || '8788', 10);
+const API_TOKEN = process.env.CAPTCHA_SOLVER_API_TOKEN || '';
+if (!API_TOKEN) {
+    throw new Error('CAPTCHA_SOLVER_API_TOKEN is required; refusing to expose the solver without authentication');
+}
 const CONCURRENCY = Math.max(1, parseInt(process.env.CAPTCHA_SOLVER_CONCURRENCY || '9', 10));
 // Concurrency is spread over this many Chrome processes. A single browser serialises
 // CDP and IPC dispatch for every context it owns, which shows up as latency rather than
@@ -230,6 +234,13 @@ function sendJson(res, code, obj) {
     const body = JSON.stringify(obj);
     res.writeHead(code, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) });
     res.end(body);
+}
+
+function isAuthorized(req) {
+    const provided = req.headers['x-captcha-solver-token'];
+    return typeof provided === 'string'
+        && provided.length === API_TOKEN.length
+        && crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(API_TOKEN));
 }
 
 function readBody(req) {
@@ -1946,6 +1957,9 @@ function sleep(ms) {
 // ---------------------------------------------------------------------------
 
 const server = http.createServer(async (req, res) => {
+    if (!isAuthorized(req)) {
+        return sendJson(res, 401, { error: 'unauthorized' });
+    }
     try {
         if (req.method === 'GET' && req.url === '/health') {
             const live = pool.filter((s) => s.browser && s.browser.connected);

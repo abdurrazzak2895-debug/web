@@ -82,6 +82,7 @@ return [
     */
     'in_house' => [
         'url' => env('CAPTCHA_SOLVER_URL', 'http://127.0.0.1:8788'),
+        'api_token' => env('CAPTCHA_SOLVER_API_TOKEN', ''),
         'timeout' => (float) env('CAPTCHA_SOLVER_HTTP_TIMEOUT', 60.0),
     ],
 
