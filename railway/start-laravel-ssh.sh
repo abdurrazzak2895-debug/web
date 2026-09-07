@@ -18,7 +18,10 @@ cd /app
 [[ "${EUID}" -eq 0 ]] || die "Container must start as root."
 [[ -n "${APP_KEY:-}" ]] || die "APP_KEY is required in Railway Variables."
 
-mkdir -p /run/sshd storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+mkdir -p /run/sshd database storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+if [[ "${DB_CONNECTION:-sqlite}" == "sqlite" ]]; then
+  touch database/database.sqlite
+fi
 chmod -R ug+rwX storage bootstrap/cache
 
 # Configure SSH without putting secrets in the image.
