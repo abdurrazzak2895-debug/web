@@ -1,0 +1,16 @@
+[program:ipms-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=/usr/bin/php /var/www/ipms/artisan queue:work redis --queue=captcha_priority,captcha,payments,scan --tries=1 --timeout=330 --sleep=1 --no-interaction
+directory=/var/www/ipms
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/var/www/ipms/storage/logs/worker.log
+stdout_logfile_maxbytes=20MB
+stdout_logfile_backups=10
+stopwaitsecs=360
+user=www-data
+environment=HOME="/var/www",USER="www-data"

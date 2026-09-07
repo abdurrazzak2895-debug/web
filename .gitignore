@@ -15,6 +15,12 @@
 .env.backup
 .env.production
 ipms_java/.env
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+**/secrets.json
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
