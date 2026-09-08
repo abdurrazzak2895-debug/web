@@ -10,6 +10,7 @@ TTYD_CREDENTIAL="${TTYD_CREDENTIAL:-}"
 ENABLE_TTYD="${ENABLE_TTYD:-0}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-0}"
 ENABLE_QUEUE_WORKER="${ENABLE_QUEUE_WORKER:-0}"
+SYNC_BUNDLE_HASH="${SYNC_BUNDLE_HASH:-1}"
 
 log() { printf '\n==> %s\n' "$*"; }
 die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
@@ -63,6 +64,10 @@ if [[ -n "${BOOTSTRAP_ADMIN_EMAIL:-}" && -n "${BOOTSTRAP_ADMIN_PASSWORD:-}" ]]; 
     );
     echo "Bootstrap admin ready: {$user->email}\n";
   '
+fi
+if [[ "${SYNC_BUNDLE_HASH}" == "1" ]]; then
+  log "Synchronizing captcha bundle metadata hash"
+  php artisan captcha:sync-bundle-hash || log "Bundle hash synchronization skipped; continuing startup"
 fi
 php artisan optimize:clear
 php artisan config:cache
