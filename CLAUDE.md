@@ -506,7 +506,7 @@ Detects both algorithms from the live bundle, verifies the sidecar output byte-f
 - `app/Models/Account.php`, `app/Models/AgentSlot.php`, `app/Models/Setting.php`, `app/Models/AccountSession.php` (JWT/OTP-verified state), `app/Models/BotLog.php`
 - `app/Http/Controllers/Api/AccountController.php` — store (duplicate phone handling), bulkAssign, PDF/booking validation
 - `app/Http/Controllers/Api/AgentSlotController.php` — heartbeat (clears pending_command), sendCommand
-- `app/Http/Controllers/Api/PublicConfigController.php` — `/api/config` (slot-filtered; OTP-verified + PDF/booking fields)
+- `app/Http/Controllers/Api/PublicConfigController.php` — `/api/config` (requires a credential: the signed link the portal mints in `BotController::start`, a slot api_key, or a `bot.manage` session; slot-filtered; OTP-verified + PDF/booking fields)
 - `app/Http/Controllers/Api/BotController.php` — package, downloadJar, jarStatus
 - `app/Http/Controllers/Api/BotLogIngestController.php` / `DbBotLogsController.php` — ingest + query/purge DB bot logs
 - `app/Services/BotControl/ProcessBotController.php` — package() builds fat JAR

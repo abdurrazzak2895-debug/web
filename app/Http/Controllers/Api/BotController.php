@@ -9,6 +9,7 @@ use App\Services\BotControl\ProcessBotController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -162,9 +163,16 @@ class BotController extends Controller
      */
     public function start(): JsonResponse
     {
-        $baseUrl = rtrim(config('app.url'), '/');
         $gmail = auth()->user()?->email ?? '';
-        $configUrl = $baseUrl.'/api/config?gmail='.rawurlencode($gmail);
+
+        // A signed link, not `?gmail=`: /api/config carries account sign-in material and
+        // refuses to answer without a credential now. The JAR fetches whatever URL it is
+        // handed, so it needs no change — this link is its credential, and it expires.
+        $configUrl = URL::temporarySignedRoute(
+            'bot.config',
+            now()->addHours((int) config('captcha.bot_config_url_ttl_hours', 168)),
+            ['gmail' => $gmail],
+        );
 
         $result = $this->bot->start($configUrl);
         $this->audit('start', $result['success'], $result['message'] ?? '');

@@ -44,7 +44,6 @@ Route::get('/documentation/{filename}', [DocumentationController::class, 'show']
 Route::get('/documentation/{filename}/download', [DocumentationController::class, 'download'])->where('filename', '[^/]+');
 Route::get('/captcha/bot-providers', [CaptchaTokenController::class, 'botProviders']);
 Route::post('/captcha/bot-store', [CaptchaTokenController::class, 'botStore']);
-Route::get('/config', \App\Http\Controllers\Api\PublicConfigController::class);
 Route::get('/server-time', fn () => response()->json([
     'serverTimeMs' => (int) (microtime(true) * 1000),
 ]));
@@ -68,6 +67,13 @@ Route::get('/window/status', function () {
 // Centralized captcha solving — open API, no auth required
 Route::post('/captcha/request', [CaptchaRequestController::class, 'store']);
 Route::get('/captcha/request/{requestId}', [CaptchaRequestController::class, 'show']);
+
+// Bot configuration — the payload carries account sign-in material (phones, passwords,
+// stored JWTs), so it answers only to a credential: the signed URL this portal hands a bot it
+// starts, a slot api_key, or a `bot.manage` session. The bare `?gmail=` path is gone.
+Route::middleware(['throttle:bot-config', 'bot_config'])->group(function () {
+    Route::get('/config', \App\Http\Controllers\Api\PublicConfigController::class)->name('bot.config');
+});
 
 // Captcha solver fleet — Bearer node api_key, no session middleware. Nodes pull work from
 // here instead of exposing a port, so a solver VPS needs nothing inbound.

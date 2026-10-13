@@ -16,6 +16,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Bot configuration link
+    |--------------------------------------------------------------------------
+    |
+    | /api/config carries account sign-in material and requires a credential.
+    | A bot started from the portal is handed a signed URL instead of a bare
+    | `?gmail=`, and this is how long that link stays valid — it has to outlast
+    | a booking cycle comfortably. A bot that runs longer is restarted from the
+    | portal, which mints a fresh link; a distributed bot may present its slot
+    | api_key instead and never expires.
+    |
+    */
+    'bot_config_url_ttl_hours' => (int) env('BOT_CONFIG_URL_TTL_HOURS', 168),
+    'bot_config_rate_limit_per_minute' => (int) env('BOT_CONFIG_RATE_LIMIT', 60),
+
+    /*
+    |--------------------------------------------------------------------------
     | Captcha bundle/meta storage directory
     |--------------------------------------------------------------------------
     |
