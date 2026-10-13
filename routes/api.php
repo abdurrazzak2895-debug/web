@@ -38,7 +38,6 @@ Route::get('/bypass-ips-public', [BypassIpController::class, 'publicIndex']);
 Route::get('/bot/jar', [BotController::class, 'downloadJar']);
 
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/captcha/get', [CaptchaTokenController::class, 'consume']);
 Route::get('/documentation', [DocumentationController::class, 'index']);
 Route::get('/documentation/{filename}', [DocumentationController::class, 'show'])->where('filename', '[^/]+');
 Route::get('/documentation/{filename}/download', [DocumentationController::class, 'download'])->where('filename', '[^/]+');
@@ -65,12 +64,21 @@ Route::get('/window/status', function () {
     ]);
 });
 
-// Centralized captcha solving — open API, no auth required
-// Centralized captcha solving — machine callers authenticate with
-// `Authorization: Bearer <CAPTCHA_API_TOKEN>`; a signed-in admin reaches the same
-// endpoints through the session, which is how the in-app API testers use them.
-Route::middleware('captcha_api')->group(function () {
+// Centralized captcha solving. Machine callers authenticate with `Authorization: Bearer
+// <CAPTCHA_API_TOKEN>` or a slot api_key; a signed-in user holding `api-tester.access` reaches
+// the same endpoints through the session, which is how the in-app testers use them.
+//
+// Both token-delivering routes are throttled per credential. GET /captcha/get is the older of
+// the two and served the same pool with no credential at all until now, so a legacy consumer
+// that sends nothing gets 401 and has to be redeployed with the token or its slot key.
+Route::middleware(['throttle:captcha-api', 'captcha_api'])->group(function () {
     Route::post('/captcha/request', [CaptchaRequestController::class, 'store']);
+    Route::get('/captcha/get', [CaptchaTokenController::class, 'consume']);
+});
+
+// The poll is the hot path — a bot asks four times a second while a solve is in flight — so it
+// carries the same credential with a far higher budget of its own.
+Route::middleware(['throttle:captcha-api-poll', 'captcha_api'])->group(function () {
     Route::get('/captcha/request/{requestId}', [CaptchaRequestController::class, 'show']);
 });
 

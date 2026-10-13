@@ -83,6 +83,10 @@ APP_URL=https://example.com
 SANCTUM_STATEFUL_DOMAINS=example.com,www.example.com
 SESSION_DOMAIN=example.com
 CAPTCHA_GET_URL=https://example.com/api/captcha/get
+# Captcha API এখন credential ছাড়া চলে না — CAPTCHA_GET_URL যে ব্যবহার করে তাকে
+# `Authorization: Bearer <CAPTCHA_API_TOKEN অথবা তার slot api_key>` পাঠাতে হবে;
+# পুরনো JAR কিছু না পাঠালে 401 পাবে।
+CAPTCHA_API_TOKEN=
 VITE_REVERB_HOST=example.com
 GOOGLE_REDIRECT_URI=https://example.com/auth/google/callback
 ```

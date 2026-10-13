@@ -517,6 +517,7 @@ Detects both algorithms from the live bundle, verifies the sidecar output byte-f
 
 **Laravel (captcha):**
 - `app/Http/Controllers/Api/CaptchaRequestController.php` — `POST /api/captcha/request`, `GET /api/captcha/request/{id}` (Bearer `CAPTCHA_API_TOKEN`, a slot `api_key`, or an `api-tester.access` session for the in-app testers); encrypts via the sidecar at poll time
+- `app/Http/Controllers/Api/CaptchaTokenController.php::consume` — the older `GET /api/captcha/get`, serving the same pool, sits behind the same credential and the same per-credential throttle (`captcha-api` / `CAPTCHA_API_RATE_LIMIT`); the poll route carries its own, far higher budget (`CAPTCHA_POLL_RATE_LIMIT`)
 - `app/Jobs/SolveCaptchaJob.php` — Redis queue `captcha`, picks random enabled provider
 - `app/Services/CaptchaSolverService.php` — provider HTTP logic for CapMonster/2Captcha/CaptchaAI
 - `app/Services/Captcha/CaptchaEncryptionService.php` + `LiveBundleClient.php` — sidecar-only encryptor (no engine selector)

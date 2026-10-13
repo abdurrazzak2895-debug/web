@@ -1,16 +1,21 @@
 <?php
 
+use App\Enums\CaptchaTokenType;
 use App\Models\AgentSlot;
+use App\Models\CaptchaProvider;
+use App\Models\CaptchaToken;
 use App\Models\User;
 
 /*
- * /api/captcha/request hands out solved Turnstile tokens, and every token handed out is paid for
- * at the configured solve providers. Reachable by anyone who could reach the host, the endpoint
- * let a stranger drain the pool or queue fresh solves on the operator's account — so it now
- * requires a credential. These tests pin that boundary.
+ * The captcha API hands out solved Turnstile tokens, and every token handed out is paid for at
+ * the configured solve providers. Both delivery routes — POST /api/captcha/request and the older
+ * GET /api/captcha/get — were reachable by anyone who could reach the host, so a stranger could
+ * drain the pool or queue fresh solves on the operator's account. These tests pin the credential
+ * boundary and the per-credential throttle in front of them.
  *
- * What the endpoint does once you are through it is covered by CaptchaPoolTest, CaptchaRaceTest
- * and ProtocolConstantsVersionTest, which present a credential the way the bot does.
+ * What the endpoints do once you are through is covered by CaptchaPoolTest, CaptchaRaceTest,
+ * CaptchaPoolExpiryTest and ProtocolConstantsVersionTest, which present a credential the way the
+ * bot does.
  */
 beforeEach(function () {
     config(['captcha.api_token' => 'testing-captcha-token']);
@@ -25,6 +30,15 @@ function captchaAuthSlotKey(): string
     ])->api_key;
 }
 
+function legacyPoolToken(): CaptchaToken
+{
+    return CaptchaToken::create([
+        'provider_id' => CaptchaProvider::factory()->create(['enabled' => true])->id,
+        'type' => CaptchaTokenType::Turnstile,
+        'token' => 'legacy-pool-token',
+    ]);
+}
+
 it('refuses an anonymous machine caller', function () {
     $this->postJson('/api/captcha/request', [])
         ->assertStatus(401)
@@ -34,6 +48,14 @@ it('refuses an anonymous machine caller', function () {
 it('refuses an anonymous poll', function () {
     $this->getJson('/api/captcha/request/does-not-exist?type=turnstile')
         ->assertStatus(401);
+});
+
+it('refuses an anonymous caller on the legacy delivery route', function () {
+    // The hole this closes: GET /api/captcha/get served the same pool with no credential at all,
+    // so locking down /api/captcha/request alone left the pool drainable through the other door.
+    legacyPoolToken();
+
+    $this->getJson('/api/captcha/get')->assertStatus(401);
 });
 
 it('refuses a wrong token', function () {
@@ -90,6 +112,15 @@ it('refuses everyone when nothing is configured', function () {
         ->assertJsonPath('error', 'Unauthorized.');
 });
 
+it('still dispenses a pooled token on the legacy route once the credential is presented', function () {
+    $token = legacyPoolToken();
+
+    $this->withHeaders(['Authorization' => 'Bearer testing-captcha-token'])
+        ->getJson('/api/captcha/get')
+        ->assertOk()
+        ->assertJson(['token' => $token->token]);
+});
+
 it('keeps the in-app testers working through an api-tester.access session', function () {
     $this->actingAs(User::factory()->create(['role' => User::ROLE_MANAGER]))
         ->getJson('/api/captcha/request/does-not-exist?type=turnstile')
@@ -108,4 +139,38 @@ it('refuses a sub-manager session too', function () {
     $this->actingAs(User::factory()->create(['role' => User::ROLE_SUB_MANAGER]))
         ->getJson('/api/captcha/request/does-not-exist?type=turnstile')
         ->assertStatus(401);
+});
+
+it('throttles one credential hammering the delivery route', function () {
+    config(['captcha.api_rate_limit_per_minute' => 3]);
+    CaptchaProvider::factory()->create(['enabled' => true]);
+
+    // Its own bucket, so the rest of the run is not counted against it.
+    $key = captchaAuthSlotKey();
+    $headers = ['Authorization' => 'Bearer '.$key];
+
+    foreach (range(1, 3) as $ignored) {
+        $this->withHeaders($headers)->getJson('/api/captcha/get')->assertStatus(404);
+    }
+
+    $this->withHeaders($headers)->getJson('/api/captcha/get')->assertStatus(429);
+});
+
+it('does not let poll traffic spend the delivery budget', function () {
+    // Laravel keys a throttle counter by the `by()` value alone, so the two limiters have to be
+    // namespaced. Without that, a bot polling four times a second while a solve is in flight
+    // would exhaust the delivery budget and the next mint would be refused mid-window.
+    config(['captcha.api_rate_limit_per_minute' => 3]);
+    CaptchaProvider::factory()->create(['enabled' => true]);
+
+    $headers = ['Authorization' => 'Bearer '.captchaAuthSlotKey()];
+
+    foreach (range(1, 10) as $ignored) {
+        $this->withHeaders($headers)
+            ->getJson('/api/captcha/request/nope?type=turnstile')
+            ->assertStatus(404);
+    }
+
+    // Ten polls later, the delivery route still has its full budget.
+    $this->withHeaders($headers)->getJson('/api/captcha/get')->assertStatus(404);
 });
