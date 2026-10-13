@@ -23,8 +23,8 @@ use Symfony\Component\HttpFoundation\Response;
  *    (an `X-Api-Key` header is accepted too);
  *  - a bot worker presenting the slot `api_key` it already uses for heartbeats and config, so
  *    the fleet needs no second secret;
- *  - a signed-in admin using the in-app API testers, which keep working through the session
- *    rather than a token.
+ *  - a signed-in user holding the `api-tester.access` ability — the console testers on Captcha
+ *    Control and API Tester — which keeps working through the session rather than a token.
  *
  * There is no anonymous path, and leaving the shared token unset does not create one: without it
  * the endpoint still refuses everyone who is not a slot or an admin.
@@ -33,7 +33,9 @@ class AuthenticateCaptchaApi
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $presented = $request->bearerToken() ?? $request->header('X-Api-Key');
+        // `?:` rather than `??`: a caller that sends an empty `Authorization: Bearer ` header
+        // should still fall back to X-Api-Key instead of being refused for an ambiguous request.
+        $presented = $request->bearerToken() ?: $request->header('X-Api-Key');
 
         if (is_string($presented) && $presented !== '') {
             if ($this->isSharedToken($presented) || $this->isSlotKey($presented)) {
@@ -52,9 +54,11 @@ class AuthenticateCaptchaApi
             return $this->unauthorized();
         }
 
-        // The in-app testers call these endpoints from the admin UI with no token of their own;
-        // an authenticated session is a stronger claim than the shared secret.
-        if ($request->user() !== null) {
+        // The in-app testers call these endpoints from the admin UI with no token of their own.
+        // They live on Captcha Control (super admin) and API Tester, so the session has to carry
+        // the ability those pages require — otherwise every agent account, whose whole job is
+        // spending tokens, could drain the pool with nothing but its login cookie.
+        if ($request->user()?->can('api-tester.access')) {
             return $next($request);
         }
 

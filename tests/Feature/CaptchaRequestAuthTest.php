@@ -90,8 +90,22 @@ it('refuses everyone when nothing is configured', function () {
         ->assertJsonPath('error', 'Unauthorized.');
 });
 
-it('keeps the in-app testers working through the admin session', function () {
-    $this->actingAs(User::factory()->create())
+it('keeps the in-app testers working through an api-tester.access session', function () {
+    $this->actingAs(User::factory()->create(['role' => User::ROLE_MANAGER]))
         ->getJson('/api/captcha/request/does-not-exist?type=turnstile')
         ->assertStatus(404);
+});
+
+it('refuses an agent session even though it is authenticated', function () {
+    // Agents are the accounts the bot spends tokens for, and their login cookie alone must not
+    // buy tokens: the session has to carry the ability the tester pages require.
+    $this->actingAs(User::factory()->create(['role' => User::ROLE_AGENT]))
+        ->getJson('/api/captcha/request/does-not-exist?type=turnstile')
+        ->assertStatus(401);
+});
+
+it('refuses a sub-manager session too', function () {
+    $this->actingAs(User::factory()->create(['role' => User::ROLE_SUB_MANAGER]))
+        ->getJson('/api/captcha/request/does-not-exist?type=turnstile')
+        ->assertStatus(401);
 });
