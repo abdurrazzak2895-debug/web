@@ -1,9 +1,0 @@
-
-/fonts/solaimanlipi/SolaimanLipi.ttf referenced in /fonts/solaimanlipi/SolaimanLipi.ttf didn't resolve at build time, it will remain unchanged to be resolved at runtime
-
-/fonts/solaimanlipi/SolaimanLipi-Bold.ttf referenced in /fonts/solaimanlipi/SolaimanLipi-Bold.ttf didn't resolve at build time, it will remain unchanged to be resolved at runtime
-[33m
-(!) Some chunks are larger than 500 kB after minification. Consider:
-- Using dynamic import() to code-split the application
-- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
-- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m

@@ -1,4 +1,0 @@
-[emulator] resolved api asset (ch): 330e41bb475c
-[emulator] bootstrap 253635 bytes, ray a355852989113761-DAC
-[emulator] handshake opened (widgetId h8s71), waiting for the challenge
-[emulator] done waiting, 0 outbound call(s), 1371 message(s)

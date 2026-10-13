@@ -8,6 +8,30 @@ use Illuminate\Database\Seeder;
 
 class AccountSeeder extends Seeder
 {
+    /**
+     * Accounts are seeded from a private, untracked fixture so that real portal
+     * credentials never live in this (public) repository.
+     *
+     * Create storage/app/private/seed-accounts.json containing an array of objects:
+     *
+     * [
+     *   {
+     *     "phone": "01XXXXXXXXX",
+     *     "email": "account@example.com",
+     *     "tag": "DOU",
+     *     "password": "<portal password>",
+     *     "max_retries": 10,
+     *     "retry_delay_ms": 700,
+     *     "slot_tick_shots": 10,
+     *     "slot_tick_interval_ms": 1000,
+     *     "is_active": true,
+     *     "status": "running"
+     *   }
+     * ]
+     *
+     * Only "phone" is required; the other keys fall back to the defaults below.
+     * Override the fixture location with the SEED_ACCOUNTS_FILE environment variable.
+     */
     public function run(): void
     {
         $admin = User::where('role', 'super_admin')->first();
@@ -16,109 +40,39 @@ class AccountSeeder extends Seeder
             return;
         }
 
-        $accounts = [
-            [
-                'phone' => '01951253750',
-                'email' => 'komalaj.p.k.a@gmail.com',
-                'tag' => 'DOU',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 10,
-                'retry_delay_ms' => 700,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
-            [
-                'phone' => '01988895708',
-                'email' => 'iva.c.d.h.k0.1.9@gmail.com',
-                'tag' => 'DOU',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 10,
-                'retry_delay_ms' => 1000,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
-            [
-                'phone' => '01922568561',
-                'email' => 'ivac.dhk019@gmail.com',
-                'tag' => 'DOU',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 10,
-                'retry_delay_ms' => 700,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
-            [
-                'phone' => '01951274019',
-                'email' => 'komala.j.pk.a@gmail.com',
-                'tag' => 'DOU',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 20,
-                'retry_delay_ms' => 700,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
-            [
-                'phone' => '01846481269',
-                'email' => 'IVA.CDHK.0.1.2@gmail.com',
-                'tag' => 'DDE4',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 10,
-                'retry_delay_ms' => 700,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
-            [
-                'phone' => '01842418213',
-                'email' => 'IVA.CDHK.0.12@gmail.com',
-                'tag' => 'DDE3',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 10,
-                'retry_delay_ms' => 700,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
-            [
-                'phone' => '01905397750',
-                'email' => 'IVA.CDHK.012@gmail.com',
-                'tag' => 'DDE1',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 10,
-                'retry_delay_ms' => 700,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
-            [
-                'phone' => '01882697667',
-                'email' => 'IVA.CDHK.01.2@gmail.com',
-                'tag' => 'DDE2',
-                'password' => 'Dhaka@2024',
-                'max_retries' => 10,
-                'retry_delay_ms' => 700,
-                'slot_tick_shots' => 10,
-                'slot_tick_interval_ms' => 1000,
-                'is_active' => true,
-                'status' => 'running',
-            ],
+        $path = env('SEED_ACCOUNTS_FILE', storage_path('app/private/seed-accounts.json'));
+
+        if (! is_file($path)) {
+            $this->command?->warn("AccountSeeder: fixture not found at {$path} - skipping account seeding.");
+
+            return;
+        }
+
+        $accounts = json_decode((string) file_get_contents($path), true);
+
+        if (! is_array($accounts) || $accounts === []) {
+            $this->command?->warn("AccountSeeder: no accounts found in {$path} - skipping account seeding.");
+
+            return;
+        }
+
+        $defaults = [
+            'max_retries' => 10,
+            'retry_delay_ms' => 700,
+            'slot_tick_shots' => 10,
+            'slot_tick_interval_ms' => 1000,
+            'is_active' => true,
+            'status' => 'running',
         ];
 
         foreach ($accounts as $data) {
+            if (empty($data['phone'])) {
+                continue;
+            }
+
             Account::updateOrCreate(
                 ['phone' => $data['phone']],
-                array_merge($data, ['user_id' => $admin->id])
+                array_merge($defaults, $data, ['user_id' => $admin->id])
             );
         }
     }
