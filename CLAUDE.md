@@ -402,7 +402,7 @@ OTPs no longer come from Firebase. SMS and Gmail are ingested into the portal, a
 
 - All captcha is **Cloudflare Turnstile** (proxyless) — reCAPTCHA v2 removed April 2026
 - **Centralized solving**: bot workers no longer call providers directly — all solving goes through portal
-- Bot calls `POST /api/captcha/request` (open API, no auth) → polls `GET /api/captcha/request/{id}?type=...` every 250ms
+- Bot calls `POST /api/captcha/request` (Bearer `CAPTCHA_API_TOKEN`, or its slot `api_key`) → polls `GET /api/captcha/request/{id}?type=...` every 250ms
 - Portal dispatches `SolveCaptchaJob` (Redis queue `captcha`, 8 systemd workers) to CapMonster/2Captcha/CaptchaAI
 - **Token types** (June 2026 — TWO distinct algorithms): `turnstile` (sign-in → **LOGIN** algorithm) | `turnstile_encrypted` (slot → **RESERVE** algorithm). Both encrypted by the portal; the raw Turnstile token is never sent to IVAC.
 - **Payload key (Java)**: the encrypted token is sent under key **`"c"`** for both sign-in (`SigninRequest.c`) and slot reserve (`SlotReservationServiceImpl` → `Map.of("c", ...)`).
@@ -516,7 +516,8 @@ Detects both algorithms from the live bundle, verifies the sidecar output byte-f
 - `app/Models/BypassIp.php` + `resources/js/pages/BypassIps/Index.vue` — origin recon only (pool empty)
 
 **Laravel (captcha):**
-- `app/Http/Controllers/Api/CaptchaRequestController.php` — `POST /api/captcha/request`, `GET /api/captcha/request/{id}` (open API); encrypts via the sidecar at poll time
+- `app/Http/Controllers/Api/CaptchaRequestController.php` — `POST /api/captcha/request`, `GET /api/captcha/request/{id}` (Bearer `CAPTCHA_API_TOKEN`, a slot `api_key`, or an `api-tester.access` session for the in-app testers); encrypts via the sidecar at poll time
+- `app/Http/Controllers/Api/CaptchaTokenController.php::consume` — the older `GET /api/captcha/get`, serving the same pool, sits behind the same credential and the same per-credential throttle (`captcha-api` / `CAPTCHA_API_RATE_LIMIT`); the poll route carries its own, far higher budget (`CAPTCHA_POLL_RATE_LIMIT`)
 - `app/Jobs/SolveCaptchaJob.php` — Redis queue `captcha`, picks random enabled provider
 - `app/Services/CaptchaSolverService.php` — provider HTTP logic for CapMonster/2Captcha/CaptchaAI
 - `app/Services/Captcha/CaptchaEncryptionService.php` + `LiveBundleClient.php` — sidecar-only encryptor (no engine selector)

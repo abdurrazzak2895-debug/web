@@ -368,3 +368,5 @@ All captcha solving is centralized through the Laravel portal. The bot never cal
 - GitHub:
   - ipms_java: `https://github.com/smensulaiman/ipms_new.git`
   - ipms_web: `https://github.com/smensulaiman/ipms_web.git`
+1. Bot calls `PortalCaptchaClient.requestCaptcha(type)` → `POST /api/captcha/request` (`Authorization: Bearer <CAPTCHA_API_TOKEN>`, falling back to the slot `api_key`)
+`PortalCaptchaClient` — OkHttp3, 250ms poll, 90s timeout. Sends `Authorization: Bearer <CAPTCHA_API_TOKEN>` when the environment provides one, otherwise the slot `api_key` it already holds; the portal refuses anonymous callers and unknown keys with 401.

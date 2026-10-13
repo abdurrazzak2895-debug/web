@@ -16,6 +16,9 @@ use Illuminate\Support\Str;
  * behind for the live pool filler to read.
  */
 beforeEach(function () {
+    // The delivery routes sit behind a machine credential; these tests are about expiry, not
+    // access, so they present the token the bot sends. CaptchaRequestAuthTest covers the boundary.
+    $this->withHeaders(['Authorization' => 'Bearer '.config('captcha.api_token')]);
     $this->originalExpiry = Redis::get('captcha:pool_expiry_seconds');
     Redis::del('captcha:pool_expiry_seconds');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Services\Captcha;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -13,8 +14,9 @@ use Illuminate\Support\Facades\Log;
  * there. Without the header IVAC answers 500 with an INCIDENT-ID, which reads like an outage
  * and is nothing of the sort.
  *
- * The token comes from the portal's own open captcha API rather than a reimplementation of it,
- * so the delivery gate, the pool claim and the provider race stay in one place.
+ * The token comes from the portal's own captcha API rather than a reimplementation of it, so
+ * the delivery gate, the pool claim and the provider race stay in one place. That API refuses
+ * anonymous callers, so the machine token rides along — see request() below.
  */
 class RawCaptchaTokenProvider
 {
@@ -33,7 +35,7 @@ class RawCaptchaTokenProvider
     public function mint(): ?string
     {
         try {
-            $response = Http::timeout(self::REQUEST_TIMEOUT_SECONDS)
+            $response = $this->request()
                 ->post($this->endpoint('/api/captcha/request'), ['type' => 'raw']);
 
             // A pool hit is answered inline, which is the path almost every request takes.
@@ -63,7 +65,7 @@ class RawCaptchaTokenProvider
         for ($attempt = 0; $attempt < self::POLL_ATTEMPTS; $attempt++) {
             usleep(self::POLL_INTERVAL_MICROSECONDS);
 
-            $poll = Http::timeout(self::REQUEST_TIMEOUT_SECONDS)
+            $poll = $this->request()
                 ->get($this->endpoint('/api/captcha/request/'.$requestId), ['type' => 'raw']);
 
             $status = $poll->json('status');
@@ -80,6 +82,22 @@ class RawCaptchaTokenProvider
         }
 
         return null;
+    }
+
+    /**
+     * A client carrying the portal's machine token.
+     *
+     * /api/captcha/request refuses anonymous callers, so without this header every mint here
+     * answers 401 and the invoice download degrades to "no token" — silently, because mint()
+     * swallows failures by design.
+     */
+    private function request(): PendingRequest
+    {
+        $request = Http::timeout(self::REQUEST_TIMEOUT_SECONDS);
+
+        $token = (string) config('captcha.api_token');
+
+        return $token === '' ? $request : $request->withToken($token);
     }
 
     private function endpoint(string $path): string

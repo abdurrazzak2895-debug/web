@@ -18,6 +18,13 @@ beforeEach(function () {
     Redis::flushdb();
 });
 
+// These tests are about what the endpoint does, not who may call it, so they present the same
+// machine token the bot sends. The credential boundary itself is covered by
+// CaptchaRequestAuthTest.
+beforeEach(function () {
+    $this->withHeaders(['Authorization' => 'Bearer '.config('captcha.api_token')]);
+});
+
 function demandRow(): CaptchaRequest
 {
     return CaptchaRequest::create([

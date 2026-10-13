@@ -357,6 +357,7 @@ const testerGetResColor = computed(() => {
 
 // ── Doc snippets ──────────────────────────────────────────────────────────────
 const postRequest = `POST /api/captcha/request
+Authorization: Bearer <CAPTCHA_API_TOKEN>
 Content-Type: application/json
 
 {
@@ -376,7 +377,9 @@ const postResponse200 = `HTTP 200 OK
   "token": "0.AbCd..."        // claimed from pool
 }`;
 const getRequest = `GET /api/captcha/request/{request_id}?type=turnstile
-GET /api/captcha/request/{request_id}?type=turnstile_encrypted`;
+GET /api/captcha/request/{request_id}?type=turnstile_encrypted
+
+Authorization: Bearer <CAPTCHA_API_TOKEN>`;
 const getResponsePending = `HTTP 200 OK
 
 {
@@ -774,7 +777,7 @@ const breadcrumbs = [
                                 <BookOpen class="h-3.5 w-3.5 text-zinc-400" />
                                 <span class="text-[10px] uppercase tracking-widest font-semibold text-zinc-400">API Documentation</span>
                             </div>
-                            <span class="text-[10px] text-zinc-400">No auth required</span>
+                            <span class="text-[10px] text-zinc-400">Bearer token, slot key or admin session</span>
                         </div>
 
                         <!-- Flow -->
@@ -804,7 +807,7 @@ const breadcrumbs = [
                                 <span class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-black">POST</span>
                                 <code class="font-mono text-[11px] font-semibold text-zinc-700 dark:text-zinc-200">/api/captcha/request</code>
                                 <span class="ml-auto inline-flex items-center gap-1 rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[9px] text-zinc-400">
-                                    <span class="h-1 w-1 rounded-full bg-emerald-400"></span>no auth
+                                    <span class="h-1 w-1 rounded-full bg-emerald-400"></span>bearer token / slot key
                                 </span>
                             </div>
                             <div class="grid grid-cols-1 lg:grid-cols-5">
@@ -855,7 +858,7 @@ const breadcrumbs = [
                                 <span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-black">GET</span>
                                 <code class="font-mono text-[11px] font-semibold text-zinc-700 dark:text-zinc-200">/api/captcha/request/{'{request_id}'}?type=…</code>
                                 <span class="ml-auto inline-flex items-center gap-1 rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[9px] text-zinc-400">
-                                    <span class="h-1 w-1 rounded-full bg-emerald-400"></span>no auth
+                                    <span class="h-1 w-1 rounded-full bg-emerald-400"></span>bearer token / slot key
                                 </span>
                             </div>
                             <div class="grid grid-cols-1 lg:grid-cols-5">

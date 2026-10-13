@@ -27,6 +27,9 @@
         <env name="DB_DATABASE" value="ipms_test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!-- Machine credential for /api/captcha/request. Tests that exercise the endpoint's
+             behaviour present it; CaptchaRequestAuthTest covers the boundary itself. -->
+        <env name="CAPTCHA_API_TOKEN" value="testing-captcha-token"/>
         <!-- Tests share the host's Redis. Pinning them to db 15 keeps a test that needs real
              list/counter semantics (the solver fleet queue) from touching live captcha state. -->
         <env name="REDIS_DB" value="15"/>

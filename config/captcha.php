@@ -5,11 +5,52 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Machine API token
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret the machine callers present as `Authorization: Bearer ...`
+    | on the captcha delivery API (POST/GET /api/captcha/request). Those
+    | endpoints hand out solved Turnstile tokens that cost real money at the
+    | solve providers, so they are not reachable without it. Signed-in admins
+    | keep using the in-app testers through their session.
+    |
+    | Bots may present their slot api_key instead — the same key they already
+    | use for heartbeats and config — so a fleet rollout needs no second
+    | secret. Leave this blank and the endpoint still refuses every anonymous
+    | caller; it never falls back to being open.
+    |
+    */
+    'api_token' => env('CAPTCHA_API_TOKEN', ''),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rate limits
+    |--------------------------------------------------------------------------
+    |
+    | Requests per minute one credential may make to the captcha delivery routes
+    | (POST /api/captcha/request and the older GET /api/captcha/get) and to the
+    | poll route. Delivery is where a leaked credential costs real money, so it
+    | is bounded tightly — a worker mints one token per solve, which leaves a
+    | healthy fleet far below the budget. Raise the delivery budget if a single
+    | worker drives many accounts at once.
+    |
+    | The poll is deliberately loose: it costs nothing to serve, but a bot asks
+    | four times a second while a solve is in flight, and a 429 there would
+    | abort the solve. It exists only to bound a credential that hammers.
+    |
+    */
+    'api_rate_limit_per_minute' => (int) env('CAPTCHA_API_RATE_LIMIT', 240),
+
+    /*
+    |--------------------------------------------------------------------------
     | Captcha token fetch URL (for Java bot)
     |--------------------------------------------------------------------------
     |
     | The bot always fetches captcha tokens from this URL (production), so
     | captcha works the same whether config is loaded from .test or production.
+    | The route sits behind the captcha API credential, so a consumer must send
+    | `Authorization: Bearer <CAPTCHA_API_TOKEN or its slot api_key>`; a JAR
+    | that sends nothing gets 401.
     |
     */
     'captcha_get_url' => env('CAPTCHA_GET_URL', rtrim(env('APP_URL', ''), '/') . '/api/captcha/get'),

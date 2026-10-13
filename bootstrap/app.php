@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\AuthenticateCaptchaApi;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ThrottleRegisterRoute;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'super_admin' => EnsureSuperAdmin::class,
+            'captcha_api' => AuthenticateCaptchaApi::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
