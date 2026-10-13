@@ -559,3 +559,5 @@ Detects both algorithms from the live bundle, verifies the sidecar output byte-f
 </project-context>
 - Bot calls `POST /api/captcha/request` (Bearer `CAPTCHA_API_TOKEN`) → polls `GET /api/captcha/request/{id}?type=...` every 250ms
 - `app/Http/Controllers/Api/CaptchaRequestController.php` — `POST /api/captcha/request`, `GET /api/captcha/request/{id}` (Bearer `CAPTCHA_API_TOKEN`, or an admin session for the in-app testers); encrypts via the sidecar at poll time
+- Bot calls `POST /api/captcha/request` (Bearer `CAPTCHA_API_TOKEN`, or its slot `api_key`) → polls `GET /api/captcha/request/{id}?type=...` every 250ms
+- `app/Http/Controllers/Api/CaptchaRequestController.php` — `POST /api/captcha/request`, `GET /api/captcha/request/{id}` (Bearer `CAPTCHA_API_TOKEN`, a slot `api_key`, or an admin session for the in-app testers); encrypts via the sidecar at poll time

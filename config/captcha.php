@@ -14,9 +14,10 @@ return [
     | solve providers, so they are not reachable without it. Signed-in admins
     | keep using the in-app testers through their session.
     |
-    | Left blank, the endpoints refuse every machine call with 503 rather than
-    | falling back to being open, so a missing env var cannot silently reopen
-    | them. Set CAPTCHA_API_TOKEN in the environment.
+    | Bots may present their slot api_key instead — the same key they already
+    | use for heartbeats and config — so a fleet rollout needs no second
+    | secret. Leave this blank and the endpoint still refuses every anonymous
+    | caller; it never falls back to being open.
     |
     */
     'api_token' => env('CAPTCHA_API_TOKEN', ''),

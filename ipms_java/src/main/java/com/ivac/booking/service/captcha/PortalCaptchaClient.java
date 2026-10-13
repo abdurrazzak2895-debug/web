@@ -64,16 +64,23 @@ public class PortalCaptchaClient {
     }
 
     /**
-     * Token for the portal's machine-facing captcha API, read from the environment so it is
-     * never committed alongside the source. A blank token is left off the request entirely:
-     * the portal answers 503 rather than serving an anonymous caller, which is the intended
-     * fail-closed behaviour, and the resulting error names the missing configuration.
+     * Credential for the portal's machine-facing captcha API.
+     *
+     * Prefers CAPTCHA_API_TOKEN, read from the environment so it is never committed alongside the
+     * source. A distributed worker that has none falls back to the slot api_key it already holds
+     * for heartbeats and config, so the fleet needs no second secret and a rollout that skipped
+     * the environment variable keeps working. Blank means the request goes out unauthenticated
+     * and the portal answers 401.
      */
     private static String resolveApiToken() {
         String token = System.getenv("CAPTCHA_API_TOKEN");
 
         if (token == null || token.isBlank()) {
             token = System.getProperty("captcha.api.token");
+        }
+
+        if (token == null || token.isBlank()) {
+            token = System.getProperty("slot.api.key");
         }
 
         return token == null ? "" : token;
