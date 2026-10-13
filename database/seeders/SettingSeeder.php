@@ -33,7 +33,10 @@ class SettingSeeder extends Seeder
             'use_java_captcha_generator' => true,
             'captcha_generator_interval_ms' => 5000,
             'captcha_generator_max_tokens' => 5,
-            'captcha_bot_secret' => '59f5ad67-e68d-474b-9dbf-7aff211726d1',
+            // Generated per install. A fixed default here is a published secret, and this one
+            // guards /api/captcha/bot-providers (which returns provider API keys) and
+            // /api/captcha/bot-store. Existing installs keep their value — rotate it by hand.
+            'captcha_bot_secret' => Str::random(48),
         ]);
 
         $superAdmin = User::where('role', 'super_admin')->first();
@@ -59,7 +62,9 @@ class SettingSeeder extends Seeder
             [
                 'name' => 'captchaai',
                 'enabled' => true,
-                'api_key' => 'a2739d70bd6dc5632093448135353e45',
+                // Never hardcode a provider key: these defaults were published in this repo and
+                // must be treated as compromised. Supply the rotated key through the environment.
+                'api_key' => env('SEED_CAPTCHAAI_API_KEY'),
                 'solver_threads' => 2,
                 'params' => [
                     'siteKey' => '0x4AAAAAACghKkJHL1t7UkuZ',
@@ -69,7 +74,7 @@ class SettingSeeder extends Seeder
             [
                 'name' => 'capmonster',
                 'enabled' => true,
-                'api_key' => '8f755be1ffca9f13069c7cea448358b4',
+                'api_key' => env('SEED_CAPMONSTER_API_KEY'),
                 'solver_threads' => 2,
                 'params' => [
                     'siteKey' => '0x4AAAAAACghKkJHL1t7UkuZ',
