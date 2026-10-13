@@ -557,3 +557,5 @@ Detects both algorithms from the live bundle, verifies the sidecar output byte-f
 - `agent_slot` relationship serializes as `agent_slot` (snake_case) in API JSON — Vue must use `account.agent_slot`, not `account.agentSlot`
 
 </project-context>
+- Bot calls `POST /api/captcha/request` (Bearer `CAPTCHA_API_TOKEN`) → polls `GET /api/captcha/request/{id}?type=...` every 250ms
+- `app/Http/Controllers/Api/CaptchaRequestController.php` — `POST /api/captcha/request`, `GET /api/captcha/request/{id}` (Bearer `CAPTCHA_API_TOKEN`, or an admin session for the in-app testers); encrypts via the sidecar at poll time

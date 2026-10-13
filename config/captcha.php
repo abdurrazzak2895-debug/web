@@ -5,6 +5,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Machine API token
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret the machine callers present as `Authorization: Bearer ...`
+    | on the captcha delivery API (POST/GET /api/captcha/request). Those
+    | endpoints hand out solved Turnstile tokens that cost real money at the
+    | solve providers, so they are not reachable without it. Signed-in admins
+    | keep using the in-app testers through their session.
+    |
+    | Left blank, the endpoints refuse every machine call with 503 rather than
+    | falling back to being open, so a missing env var cannot silently reopen
+    | them. Set CAPTCHA_API_TOKEN in the environment.
+    |
+    */
+    'api_token' => env('CAPTCHA_API_TOKEN', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Captcha token fetch URL (for Java bot)
     |--------------------------------------------------------------------------
     |

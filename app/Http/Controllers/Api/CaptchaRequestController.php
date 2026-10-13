@@ -20,8 +20,10 @@ class CaptchaRequestController extends Controller
     /**
      * POST /api/captcha/request
      *
-     * Open endpoint — no auth required. Claims a ready token from the pool
-     * immediately, or falls back to racing providers for a new solve.
+     * Machine callers authenticate with `Authorization: Bearer <CAPTCHA_API_TOKEN>`
+     * (a signed-in admin session is accepted too, for the in-app testers). Claims a
+     * ready token from the pool immediately, or falls back to racing providers for a
+     * new solve.
      *
      * Naming `type` in the body gets the token delivered inline in this response;
      * omitting it falls back to the older claim-then-GET protocol, where the type is
@@ -137,8 +139,8 @@ class CaptchaRequestController extends Controller
     /**
      * GET /api/captcha/request/{requestId}?type=turnstile|turnstile_encrypted
      *
-     * Open endpoint — no auth required. Returns the solved token, applying
-     * encryption if type=turnstile_encrypted. Deletes the entry on consumption.
+     * Same credential as store() above. Returns the solved token, applying encryption
+     * if type=turnstile_encrypted. Deletes the entry on consumption.
      */
     public function show(Request $request, string $requestId, CaptchaEncryptionService $encryptor): JsonResponse
     {
@@ -150,7 +152,7 @@ class CaptchaRequestController extends Controller
 
         // Stamped on every response so a bot parked at the gate learns that a mid-window bundle
         // extraction changed the IVAC constants, and can refresh /api/config before it uses the token
-        // this poll is waiting for. Opaque hash only — this endpoint is unauthenticated, so the
+        // this poll is waiting for. Opaque hash only — the token rides along to the bot, but the
         // constants themselves must never be shipped here.
         $configVersion = Setting::currentProtocolConstantsVersion();
 

@@ -66,8 +66,13 @@ Route::get('/window/status', function () {
 });
 
 // Centralized captcha solving — open API, no auth required
-Route::post('/captcha/request', [CaptchaRequestController::class, 'store']);
-Route::get('/captcha/request/{requestId}', [CaptchaRequestController::class, 'show']);
+// Centralized captcha solving — machine callers authenticate with
+// `Authorization: Bearer <CAPTCHA_API_TOKEN>`; a signed-in admin reaches the same
+// endpoints through the session, which is how the in-app API testers use them.
+Route::middleware('captcha_api')->group(function () {
+    Route::post('/captcha/request', [CaptchaRequestController::class, 'store']);
+    Route::get('/captcha/request/{requestId}', [CaptchaRequestController::class, 'show']);
+});
 
 // Captcha solver fleet — Bearer node api_key, no session middleware. Nodes pull work from
 // here instead of exposing a port, so a solver VPS needs nothing inbound.

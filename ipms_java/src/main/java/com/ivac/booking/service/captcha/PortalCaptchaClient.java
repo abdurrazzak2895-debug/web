@@ -45,16 +45,42 @@ public class PortalCaptchaClient {
     private static final long REFRESH_AWAIT_MS = 3_000;
 
     private final String baseUrl;
+    private final String apiToken;
     private final HttpClient http;
 
     public PortalCaptchaClient(String baseUrl) {
+        this(baseUrl, resolveApiToken());
+    }
+
+    public PortalCaptchaClient(String baseUrl, String apiToken) {
         this.baseUrl = baseUrl.replaceAll("/+$", "");
+        this.apiToken = apiToken == null ? "" : apiToken.trim();
         this.http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .version(HttpClient.Version.HTTP_2)
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .executor(Executors.newVirtualThreadPerTaskExecutor())
                 .build();
+    }
+
+    /**
+     * Token for the portal's machine-facing captcha API, read from the environment so it is
+     * never committed alongside the source. A blank token is left off the request entirely:
+     * the portal answers 503 rather than serving an anonymous caller, which is the intended
+     * fail-closed behaviour, and the resulting error names the missing configuration.
+     */
+    private static String resolveApiToken() {
+        String token = System.getenv("CAPTCHA_API_TOKEN");
+
+        if (token == null || token.isBlank()) {
+            token = System.getProperty("captcha.api.token");
+        }
+
+        return token == null ? "" : token;
+    }
+
+    private HttpRequest.Builder withAuth(HttpRequest.Builder builder) {
+        return apiToken.isEmpty() ? builder : builder.header("Authorization", "Bearer " + apiToken);
     }
 
     public CompletableFuture<CaptchaToken> requestCaptcha(String type, String phone) {
@@ -96,11 +122,11 @@ public class PortalCaptchaClient {
         }
 
         String body = GSON.toJson(payload);
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest request = withAuth(HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/api/captcha/request"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(15)))
                 .build();
 
         HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
@@ -126,10 +152,10 @@ public class PortalCaptchaClient {
         String url = baseUrl + "/api/captcha/request/" + requestId + "?type=" + type;
 
         while (System.currentTimeMillis() < deadline) {
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest request = withAuth(HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .GET()
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(10)))
                     .build();
 
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());

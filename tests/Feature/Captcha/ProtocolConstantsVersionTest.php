@@ -140,3 +140,9 @@ it('stamps the config version on a ready token handoff', function () {
             'config_version' => Setting::instance()->protocolConstantsVersion(),
         ]);
 });
+
+// The endpoint sits behind a machine credential; these tests are about the config-version signal
+// it stamps, so they present the token the bot sends.
+beforeEach(function () {
+    $this->withHeaders(['Authorization' => 'Bearer '.config('captcha.api_token')]);
+});
