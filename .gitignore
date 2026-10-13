@@ -48,3 +48,10 @@ app/Scripts/__pycache__/
 # wallet PINs and OTPs. Research artefacts, kept local only.
 /tests/*.har
 /tests/har-data/
+
+# --- Build / runtime logs (never commit) ---
+*.log
+*_stdout.txt
+*_stderr.txt
+/emu_*.txt
+test-response.json
